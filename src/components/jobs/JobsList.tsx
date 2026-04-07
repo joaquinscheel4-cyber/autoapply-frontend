@@ -4,8 +4,9 @@ import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { JobWithMatch } from "@/types";
 import JobCard from "./JobCard";
-import { RefreshCw, Loader2, Search } from "lucide-react";
+import { RefreshCw, Loader2, Search, Star } from "lucide-react";
 import ImportJobInput from "./ImportJobInput";
+import { getCompanyScore } from "@/lib/company-ranking";
 
 type Modality = "all" | "remote" | "hybrid" | "presencial";
 
@@ -14,6 +15,7 @@ export default function JobsList({ initialJobs }: { initialJobs: JobWithMatch[] 
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [modality, setModality] = useState<Modality>("all");
+  const [onlyPrestigious, setOnlyPrestigious] = useState(false);
 
   useEffect(() => {
     if (initialJobs.length === 0) {
@@ -32,9 +34,12 @@ export default function JobsList({ initialJobs }: { initialJobs: JobWithMatch[] 
       const matchesModality =
         modality === "all" || job.modality === modality;
 
-      return matchesSearch && matchesModality;
+      const matchesPrestige =
+        !onlyPrestigious || getCompanyScore(job.company) >= 65;
+
+      return matchesSearch && matchesModality && matchesPrestige;
     });
-  }, [jobs, search, modality]);
+  }, [jobs, search, modality, onlyPrestigious]);
 
   async function handleRefresh(silent = false) {
     setRefreshing(true);
@@ -71,12 +76,14 @@ export default function JobsList({ initialJobs }: { initialJobs: JobWithMatch[] 
     { value: "presencial", label: "Presencial" },
   ];
 
+  const prestigiousCount = jobs.filter(j => getCompanyScore(j.company) >= 65).length;
+
   return (
     <div>
       {/* Filters bar */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4 flex-wrap">
         {/* Search */}
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-[200px]">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -104,6 +111,24 @@ export default function JobsList({ initialJobs }: { initialJobs: JobWithMatch[] 
           ))}
         </div>
 
+        {/* Prestigious toggle */}
+        <button
+          onClick={() => setOnlyPrestigious(!onlyPrestigious)}
+          className={`flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border transition-colors whitespace-nowrap ${
+            onlyPrestigious
+              ? "bg-yellow-400 text-yellow-900 border-yellow-400 font-medium"
+              : "border-gray-200 text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <Star size={13} className={onlyPrestigious ? "fill-yellow-900" : ""} />
+          Empresas conocidas
+          {!onlyPrestigious && (
+            <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full ml-0.5">
+              {prestigiousCount}
+            </span>
+          )}
+        </button>
+
         {/* Import + Refresh */}
         <ImportJobInput onImported={() => window.location.reload()} />
         <button
@@ -119,8 +144,9 @@ export default function JobsList({ initialJobs }: { initialJobs: JobWithMatch[] 
       {/* Results count */}
       {jobs.length > 0 && (
         <p className="text-xs text-gray-400 mb-3">
-          {filtered.length} de {jobs.length} trabajos
-          {search && ` para "${search}"`}
+          Mostrando <span className="font-medium text-gray-600">{filtered.length}</span> de {jobs.length} trabajos
+          {onlyPrestigious && " · Solo empresas reconocidas"}
+          {search && ` · "${search}"`}
           {modality !== "all" && ` · ${modalityOptions.find(m => m.value === modality)?.label}`}
         </p>
       )}

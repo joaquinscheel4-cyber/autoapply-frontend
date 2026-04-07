@@ -12,20 +12,6 @@ function CompanyLogo({ company }: { company: string }) {
   const logoUrl = getCompanyLogoUrl(company);
   const initials = getCompanyInitials(company);
 
-  if (logoUrl && !imgError) {
-    return (
-      <div className="w-10 h-10 rounded-lg border border-gray-100 bg-white flex items-center justify-center overflow-hidden shrink-0">
-        <img
-          src={logoUrl}
-          alt={company}
-          className="w-8 h-8 object-contain"
-          onError={() => setImgError(true)}
-        />
-      </div>
-    );
-  }
-
-  // Fallback: colored avatar with initials
   const colors = [
     "bg-blue-100 text-blue-700", "bg-purple-100 text-purple-700",
     "bg-green-100 text-green-700", "bg-orange-100 text-orange-700",
@@ -33,8 +19,21 @@ function CompanyLogo({ company }: { company: string }) {
   ];
   const colorClass = colors[company.charCodeAt(0) % colors.length];
 
+  if (logoUrl && !imgError) {
+    return (
+      <div className="w-12 h-12 rounded-xl border border-gray-100 bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+        <img
+          src={logoUrl}
+          alt={company}
+          className="w-10 h-10 object-contain"
+          onError={() => setImgError(true)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${colorClass}`}>
+    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm shadow-sm ${colorClass}`}>
       {initials}
     </div>
   );
@@ -147,9 +146,9 @@ export default function JobCard({
 
           {/* Company + location */}
           <div className="flex items-center gap-3 text-sm text-gray-500 flex-wrap">
-            <span className="font-medium text-gray-700">{job.company}</span>
-            <span className="flex items-center gap-1">
-              <MapPin size={13} />
+            <span className="font-semibold text-gray-800 text-base">{job.company}</span>
+            <span className="flex items-center gap-1 text-gray-400">
+              <MapPin size={12} />
               {job.location}
             </span>
             {job.modality && (
