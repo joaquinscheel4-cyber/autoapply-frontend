@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { JobWithMatch } from "@/types";
 import JobCard from "./JobCard";
 import { RefreshCw, Loader2, Search } from "lucide-react";
+import ImportJobInput from "./ImportJobInput";
 
 type Modality = "all" | "remote" | "hybrid" | "presencial";
 
@@ -103,7 +104,8 @@ export default function JobsList({ initialJobs }: { initialJobs: JobWithMatch[] 
           ))}
         </div>
 
-        {/* Refresh */}
+        {/* Import + Refresh */}
+        <ImportJobInput onImported={() => window.location.reload()} />
         <button
           onClick={() => handleRefresh(false)}
           disabled={refreshing}
