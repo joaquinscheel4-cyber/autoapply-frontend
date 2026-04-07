@@ -4,7 +4,41 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { JobWithMatch } from "@/types";
 import { getCompanyScore } from "@/lib/company-ranking";
-import { MapPin, Building2, ExternalLink, CheckCircle2, Loader2, Star, ChevronDown, ChevronUp, Zap } from "lucide-react";
+import { getCompanyLogoUrl, getCompanyInitials } from "@/lib/company-logos";
+import { MapPin, ExternalLink, CheckCircle2, Loader2, Star, ChevronDown, ChevronUp, Zap } from "lucide-react";
+
+function CompanyLogo({ company }: { company: string }) {
+  const [imgError, setImgError] = useState(false);
+  const logoUrl = getCompanyLogoUrl(company);
+  const initials = getCompanyInitials(company);
+
+  if (logoUrl && !imgError) {
+    return (
+      <div className="w-10 h-10 rounded-lg border border-gray-100 bg-white flex items-center justify-center overflow-hidden shrink-0">
+        <img
+          src={logoUrl}
+          alt={company}
+          className="w-8 h-8 object-contain"
+          onError={() => setImgError(true)}
+        />
+      </div>
+    );
+  }
+
+  // Fallback: colored avatar with initials
+  const colors = [
+    "bg-blue-100 text-blue-700", "bg-purple-100 text-purple-700",
+    "bg-green-100 text-green-700", "bg-orange-100 text-orange-700",
+    "bg-pink-100 text-pink-700", "bg-teal-100 text-teal-700",
+  ];
+  const colorClass = colors[company.charCodeAt(0) % colors.length];
+
+  return (
+    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${colorClass}`}>
+      {initials}
+    </div>
+  );
+}
 
 function ATSBadge({ link }: { link: string }) {
   const url = link?.toLowerCase() || "";
@@ -74,7 +108,6 @@ export default function JobCard({
         toast.success(`¡Postulado vía ${data.method || "formulario"}!`);
         onApplied();
       } else {
-        // Not auto-applied but we have the cover letter — show manual option
         toast.info("Carta generada. Postula manualmente con el link.");
         onApplied();
       }
@@ -89,6 +122,9 @@ export default function JobCard({
     <div className="bg-white rounded-xl border border-gray-100 hover:shadow-sm transition-shadow">
       {/* Main row */}
       <div className="p-5 flex items-start gap-4">
+        {/* Company logo */}
+        <CompanyLogo company={job.company} />
+
         <div className="flex-1 min-w-0">
           {/* Title + badges */}
           <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -111,10 +147,7 @@ export default function JobCard({
 
           {/* Company + location */}
           <div className="flex items-center gap-3 text-sm text-gray-500 flex-wrap">
-            <span className="flex items-center gap-1 font-medium text-gray-700">
-              <Building2 size={13} />
-              {job.company}
-            </span>
+            <span className="font-medium text-gray-700">{job.company}</span>
             <span className="flex items-center gap-1">
               <MapPin size={13} />
               {job.location}
@@ -186,7 +219,6 @@ export default function JobCard({
       {/* Expanded section */}
       {expanded && (
         <div className="border-t border-gray-50 p-4 space-y-3">
-          {/* Apply result */}
           {result && (
             <div className={`p-3 rounded-lg text-sm ${result.success ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}`}>
               <p className="font-medium mb-1">
@@ -206,7 +238,6 @@ export default function JobCard({
             </div>
           )}
 
-          {/* Cover letter */}
           {result?.cover_letter && (
             <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
               <p className="text-xs font-medium text-gray-500 mb-2">Carta de presentación generada:</p>
@@ -216,7 +247,6 @@ export default function JobCard({
             </div>
           )}
 
-          {/* Match reasons */}
           {!result && job.match.reasons.length > 0 && (
             <div>
               <p className="text-xs font-medium text-gray-500 mb-1">¿Por qué es un buen match?</p>
@@ -230,7 +260,6 @@ export default function JobCard({
             </div>
           )}
 
-          {/* Gaps */}
           {!result && job.match.gaps.length > 0 && (
             <div>
               <p className="text-xs font-medium text-gray-500 mb-1">Brechas detectadas:</p>
