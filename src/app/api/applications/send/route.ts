@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     const ats = detectATS(job.apply_link || "");
 
-    let applyResult: { success: boolean; message: string; ats: string } = {
+    let applyResult: { success: boolean; message: string; ats: string; action?: string; apply_link?: string } = {
       success: false,
       message: "Sin método de postulación disponible",
       ats,
@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
             success: data.success,
             message: data.message,
             ats: data.ats || ats,
+            ...(data.action === "redirect" && { action: "redirect", apply_link: data.apply_link }),
           };
         }
       } catch (err) {
@@ -141,7 +142,8 @@ export async function POST(request: NextRequest) {
       application_id: application!.id,
       method: applyResult.ats,
       message: applyResult.message,
-      apply_link: job.apply_link,
+      apply_link: applyResult.apply_link || job.apply_link,
+      action: applyResult.action,
     });
 
   } catch (error: unknown) {
