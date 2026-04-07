@@ -66,7 +66,7 @@ export interface Application {
   status: "pending" | "sent" | "failed";
   sent_at: string | null;
   email_message_id: string | null;
-  triggered_by: "cron" | "manual";
+  triggered_by: "cron" | "manual" | "sniper";
   created_at: string;
 }
 
