@@ -7,7 +7,7 @@ import { getCompanyScore } from "@/lib/company-ranking";
 import { getCompanyLogoUrl, getCompanyInitials } from "@/lib/company-logos";
 import { MapPin, ExternalLink, CheckCircle2, Loader2, Star, ChevronDown, ChevronUp, Zap } from "lucide-react";
 
-function CompanyLogo({ company }: { company: string }) {
+function CompanyAvatar({ company }: { company: string }) {
   const [imgError, setImgError] = useState(false);
   const logoUrl = getCompanyLogoUrl(company);
   const initials = getCompanyInitials(company);
@@ -16,25 +16,29 @@ function CompanyLogo({ company }: { company: string }) {
     "bg-blue-100 text-blue-700", "bg-purple-100 text-purple-700",
     "bg-green-100 text-green-700", "bg-orange-100 text-orange-700",
     "bg-pink-100 text-pink-700", "bg-teal-100 text-teal-700",
+    "bg-indigo-100 text-indigo-700", "bg-rose-100 text-rose-700",
   ];
   const colorClass = colors[company.charCodeAt(0) % colors.length];
 
-  if (logoUrl && !imgError) {
-    return (
-      <div className="w-12 h-12 rounded-xl border border-gray-100 bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-        <img
-          src={logoUrl}
-          alt={company}
-          className="w-10 h-10 object-contain"
-          onError={() => setImgError(true)}
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm shadow-sm ${colorClass}`}>
-      {initials}
+    <div className="flex flex-col items-center gap-1.5 w-16 shrink-0">
+      {logoUrl && !imgError ? (
+        <div className="w-14 h-14 rounded-2xl border border-gray-100 bg-white flex items-center justify-center overflow-hidden shadow-sm">
+          <img
+            src={logoUrl}
+            alt={company}
+            className="w-11 h-11 object-contain"
+            onError={() => setImgError(true)}
+          />
+        </div>
+      ) : (
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-base shadow-sm ${colorClass}`}>
+          {initials}
+        </div>
+      )}
+      <span className="text-[10px] text-gray-500 text-center leading-tight line-clamp-2 w-full">
+        {company}
+      </span>
     </div>
   );
 }
@@ -48,41 +52,25 @@ function ATSBadge({ link }: { link: string }) {
   return null;
 }
 
-function CompanyPrestige({ company }: { company: string }) {
-  const score = getCompanyScore(company);
-  if (score >= 85) return <span title="Empresa muy reconocida"><Star size={13} className="text-yellow-400 fill-yellow-400" /></span>;
-  if (score >= 70) return <span title="Empresa reconocida"><Star size={13} className="text-yellow-300 fill-yellow-300" /></span>;
-  return null;
-}
-
-export default function JobCard({
-  job,
-  onApplied,
-}: {
-  job: JobWithMatch;
-  onApplied: () => void;
-}) {
+export default function JobCard({ job, onApplied }: { job: JobWithMatch; onApplied: () => void }) {
   const [applying, setApplying] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [result, setResult] = useState<{
-    success: boolean;
-    message: string;
-    method: string;
-    cover_letter?: string;
-    apply_link?: string;
+    success: boolean; message: string; method: string;
+    cover_letter?: string; apply_link?: string;
   } | null>(null);
 
   const score = job.match.score;
   const scoreColor =
     score >= 70 ? "text-green-600 bg-green-50" :
     score >= 45 ? "text-yellow-600 bg-yellow-50" :
-    "text-gray-500 bg-gray-100";
+    "text-gray-400 bg-gray-50";
 
   const modalityLabel: Record<string, string> = {
-    remote: "Remoto",
-    hybrid: "Híbrido",
-    presencial: "Presencial",
+    remote: "🌐 Remoto", hybrid: "🏠 Híbrido", presencial: "🏢 Presencial",
   };
+
+  const companyScore = getCompanyScore(job.company);
 
   async function handleApply() {
     setApplying(true);
@@ -102,12 +90,13 @@ export default function JobCard({
         cover_letter: data.cover_letter,
         apply_link: data.apply_link,
       });
+      setExpanded(true);
 
       if (data.success) {
-        toast.success(`¡Postulado vía ${data.method || "formulario"}!`);
+        toast.success("¡Postulación enviada!");
         onApplied();
       } else {
-        toast.info("Carta generada. Postula manualmente con el link.");
+        toast.info("Carta lista. Postula manualmente.");
         onApplied();
       }
     } catch (err: unknown) {
@@ -118,154 +107,131 @@ export default function JobCard({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 hover:shadow-sm transition-shadow">
-      {/* Main row */}
+    <div className="bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-all duration-200">
       <div className="p-5 flex items-start gap-4">
-        {/* Company logo */}
-        <CompanyLogo company={job.company} />
+        {/* Logo + nombre empresa */}
+        <CompanyAvatar company={job.company} />
 
+        {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* Title + badges */}
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h3 className="font-semibold text-gray-900">{job.title}</h3>
-            <CompanyPrestige company={job.company} />
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${scoreColor}`}>
-              {score}% match
-            </span>
-            {job.already_applied && result?.success && (
-              <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-                <CheckCircle2 size={12} /> Postulado
-              </span>
-            )}
-            {job.already_applied && !result?.success && (
-              <span className="flex items-center gap-1 text-xs text-blue-600 font-medium">
-                <CheckCircle2 size={12} /> Guardado
-              </span>
-            )}
-          </div>
-
-          {/* Company + location */}
-          <div className="flex items-center gap-3 text-sm text-gray-500 flex-wrap">
-            <span className="font-semibold text-gray-800 text-base">{job.company}</span>
-            <span className="flex items-center gap-1 text-gray-400">
-              <MapPin size={12} />
-              {job.location}
-            </span>
-            {job.modality && (
-              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
-                {modalityLabel[job.modality] || job.modality}
-              </span>
-            )}
-            {job.apply_link && <ATSBadge link={job.apply_link} />}
-          </div>
-
-          {/* Skills */}
-          {job.match.matchedSkills.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {job.match.matchedSkills.slice(0, 5).map((skill) => (
-                <span key={skill} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
-                  {skill}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              {/* Prestige + match */}
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                {companyScore >= 85 && (
+                  <span className="flex items-center gap-0.5 text-xs text-yellow-600 font-medium">
+                    <Star size={11} className="fill-yellow-500 text-yellow-500" /> Top empresa
+                  </span>
+                )}
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${scoreColor}`}>
+                  {score}% match
                 </span>
-              ))}
-              {job.match.missingSkills.length > 0 && (
-                <span className="px-2 py-0.5 bg-gray-50 text-gray-400 rounded text-xs">
-                  +{job.match.missingSkills.length} faltan
+                {job.already_applied && (
+                  <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                    <CheckCircle2 size={11} /> Postulado
+                  </span>
+                )}
+              </div>
+
+              {/* Title */}
+              <h3 className="font-semibold text-gray-900 text-base leading-snug">{job.title}</h3>
+
+              {/* Location + modality */}
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="flex items-center gap-1 text-xs text-gray-400">
+                  <MapPin size={11} /> {job.location}
                 </span>
+                {job.modality && (
+                  <span className="text-xs text-gray-400">
+                    {modalityLabel[job.modality] || job.modality}
+                  </span>
+                )}
+                {job.apply_link && <ATSBadge link={job.apply_link} />}
+              </div>
+
+              {/* Skills */}
+              {job.match.matchedSkills.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {job.match.matchedSkills.slice(0, 4).map((skill) => (
+                    <span key={skill} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs">
+                      {skill}
+                    </span>
+                  ))}
+                  {job.match.missingSkills.length > 0 && (
+                    <span className="px-2 py-0.5 bg-gray-50 text-gray-400 rounded-full text-xs">
+                      +{job.match.missingSkills.length} sin match
+                    </span>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
 
-        {/* Action buttons */}
-        <div className="flex flex-col gap-2 shrink-0 items-end">
-          {!job.already_applied ? (
-            <button
-              onClick={handleApply}
-              disabled={applying}
-              className="flex items-center gap-1.5 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 whitespace-nowrap"
-            >
-              {applying ? (
-                <><Loader2 size={14} className="animate-spin" /> Postulando...</>
-              ) : (
-                <><Zap size={14} /> Auto-postular</>
+            {/* Actions */}
+            <div className="flex flex-col gap-2 items-end shrink-0">
+              {!job.already_applied ? (
+                <button
+                  onClick={handleApply}
+                  disabled={applying}
+                  className="flex items-center gap-1.5 bg-primary-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-700 disabled:opacity-50 whitespace-nowrap shadow-sm"
+                >
+                  {applying
+                    ? <><Loader2 size={13} className="animate-spin" /> Postulando...</>
+                    : <><Zap size={13} /> Postular</>
+                  }
+                </button>
+              ) : null}
+
+              {job.apply_link && (
+                <a href={job.apply_link} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
+                  <ExternalLink size={11} /> Ver oferta
+                </a>
               )}
-            </button>
-          ) : null}
 
-          {job.apply_link && (
-            <a
-              href={job.apply_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
-            >
-              <ExternalLink size={12} /> Ver oferta
-            </a>
-          )}
-
-          {(result?.cover_letter || job.match.reasons.length > 0) && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
-            >
-              {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              {expanded ? "Ocultar" : "Ver detalle"}
-            </button>
-          )}
+              {(result?.cover_letter || job.match.reasons.length > 0) && (
+                <button onClick={() => setExpanded(!expanded)}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
+                  {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                  {expanded ? "Ocultar" : "Detalle"}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Expanded section */}
+      {/* Expanded */}
       {expanded && (
-        <div className="border-t border-gray-50 p-4 space-y-3">
+        <div className="border-t border-gray-50 p-4 space-y-3 bg-gray-50/50 rounded-b-2xl">
           {result && (
-            <div className={`p-3 rounded-lg text-sm ${result.success ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}`}>
-              <p className="font-medium mb-1">
-                {result.success ? "✅ Postulación enviada automáticamente" : "📋 Carta generada — postula manualmente"}
+            <div className={`p-3 rounded-xl text-sm ${result.success ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}`}>
+              <p className="font-semibold mb-1">
+                {result.success ? "✅ Postulación enviada" : "📋 Carta generada — postula manualmente"}
               </p>
               <p className="text-xs opacity-80">{result.message}</p>
               {!result.success && result.apply_link && (
-                <a
-                  href={result.apply_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-2 text-xs font-medium underline"
-                >
-                  <ExternalLink size={11} /> Ir al formulario de postulación
+                <a href={result.apply_link} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 mt-2 text-xs font-medium underline">
+                  <ExternalLink size={11} /> Ir al formulario →
                 </a>
               )}
             </div>
           )}
 
           {result?.cover_letter && (
-            <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-              <p className="text-xs font-medium text-gray-500 mb-2">Carta de presentación generada:</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                {result.cover_letter}
-              </p>
+            <div className="bg-white rounded-xl p-3 border border-gray-100">
+              <p className="text-xs font-medium text-gray-500 mb-2">Carta de presentación generada por IA:</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{result.cover_letter}</p>
             </div>
           )}
 
           {!result && job.match.reasons.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-gray-500 mb-1">¿Por qué es un buen match?</p>
-              <ul className="space-y-1">
+              <p className="text-xs font-medium text-gray-500 mb-1">Por qué es un buen match:</p>
+              <ul className="space-y-0.5">
                 {job.match.reasons.map((r, i) => (
                   <li key={i} className="text-xs text-gray-600 flex items-center gap-1">
                     <span className="text-green-500">✓</span> {r}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {!result && job.match.gaps.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-gray-500 mb-1">Brechas detectadas:</p>
-              <ul className="space-y-1">
-                {job.match.gaps.map((g, i) => (
-                  <li key={i} className="text-xs text-gray-400 flex items-center gap-1">
-                    <span>→</span> {g}
                   </li>
                 ))}
               </ul>
