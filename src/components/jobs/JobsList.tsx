@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { JobWithMatch } from "@/types";
 import JobCard from "./JobCard";
-import { RefreshCw, Loader2, Search, Star } from "lucide-react";
+import { RefreshCw, Loader2, Search, Star, Clock } from "lucide-react";
 import ImportJobInput from "./ImportJobInput";
 import { getCompanyScore } from "@/lib/company-ranking";
 
@@ -16,12 +16,15 @@ export default function JobsList({ initialJobs }: { initialJobs: JobWithMatch[] 
   const [search, setSearch] = useState("");
   const [modality, setModality] = useState<Modality>("all");
   const [onlyPrestigious, setOnlyPrestigious] = useState(false);
+  const [onlyRecent, setOnlyRecent] = useState(false);
 
   useEffect(() => {
     if (initialJobs.length === 0) {
       handleRefresh(true);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const cutoff48h = useMemo(() => new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), []);
 
   const filtered = useMemo(() => {
     return jobs.filter((job) => {
@@ -37,9 +40,12 @@ export default function JobsList({ initialJobs }: { initialJobs: JobWithMatch[] 
       const matchesPrestige =
         !onlyPrestigious || getCompanyScore(job.company) >= 65;
 
-      return matchesSearch && matchesModality && matchesPrestige;
+      const matchesRecent =
+        !onlyRecent || (job.fetched_at && job.fetched_at >= cutoff48h);
+
+      return matchesSearch && matchesModality && matchesPrestige && matchesRecent;
     });
-  }, [jobs, search, modality, onlyPrestigious]);
+  }, [jobs, search, modality, onlyPrestigious, onlyRecent, cutoff48h]);
 
   async function handleRefresh(silent = false) {
     setRefreshing(true);
@@ -77,6 +83,7 @@ export default function JobsList({ initialJobs }: { initialJobs: JobWithMatch[] 
   ];
 
   const prestigiousCount = jobs.filter(j => getCompanyScore(j.company) >= 65).length;
+  const recentCount = jobs.filter(j => j.fetched_at && j.fetched_at >= cutoff48h).length;
 
   return (
     <div>
@@ -125,6 +132,24 @@ export default function JobsList({ initialJobs }: { initialJobs: JobWithMatch[] 
           {!onlyPrestigious && (
             <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full ml-0.5">
               {prestigiousCount}
+            </span>
+          )}
+        </button>
+
+        {/* Recent filter */}
+        <button
+          onClick={() => setOnlyRecent(!onlyRecent)}
+          className={`flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border transition-colors whitespace-nowrap ${
+            onlyRecent
+              ? "bg-green-500 text-white border-green-500 font-medium"
+              : "border-gray-200 text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <Clock size={13} />
+          Recientes
+          {!onlyRecent && (
+            <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full ml-0.5">
+              {recentCount}
             </span>
           )}
         </button>
