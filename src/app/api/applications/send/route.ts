@@ -57,15 +57,17 @@ export async function POST(request: NextRequest) {
     const cvBase64 = cvBuffer.toString("base64");
 
     const ats = detectATS(job.apply_link || "");
+    const cvFileName = `CV_${appProfile.name.replace(/\s+/g, "_")}.pdf`;
 
-    let applyResult: { success: boolean; message: string; ats: string; action?: string; apply_link?: string } = {
+    let applyResult: { success: boolean; message: string; ats: string; apply_link?: string } = {
       success: false,
       message: "Sin método de postulación disponible",
       ats,
     };
 
-    // ── Método 1: Railway Backend (Playwright auto-apply) ──────────
-    if (RAILWAY_BACKEND && job.apply_link) {
+    // ── Método único: Email via Railway backend ────────────────────
+    // Railway handles: job.apply_email → Hunter.io lookup → fallback pattern
+    if (RAILWAY_BACKEND) {
       try {
         const res = await fetch(`${RAILWAY_BACKEND}/auto-apply`, {
           method: "POST",
@@ -74,14 +76,21 @@ export async function POST(request: NextRequest) {
             "Authorization": `Bearer ${AGGREGATE_SECRET}`,
           },
           body: JSON.stringify({
-            job: { id: job.id, title: job.title, company: job.company, apply_link: job.apply_link, description: job.description },
+            job: {
+              id: job.id,
+              title: job.title,
+              company: job.company,
+              apply_link: job.apply_link || "",
+              apply_email: (job as Job).apply_email || null,
+              description: job.description,
+            },
             parsed_cv: profile.parsed_cv,
             cv_base64: cvBase64,
+            cover_letter: coverLetter,
             user_preferences: profile.preferences || {},
             existing_answers: profile.preferences?.standard_answers || {},
-            cover_letter: coverLetter,
           }),
-          signal: AbortSignal.timeout(90000),
+          signal: AbortSignal.timeout(60000),
         });
 
         if (res.ok) {
@@ -89,34 +98,12 @@ export async function POST(request: NextRequest) {
           applyResult = {
             success: data.success,
             message: data.message,
-            ats: data.ats || ats,
-            ...(data.action === "redirect" && { action: "redirect", apply_link: data.apply_link }),
+            ats: data.method === "email" ? "email" : ats,
+            apply_link: data.apply_link || job.apply_link,
           };
         }
       } catch (err) {
         console.error("Railway auto-apply error:", err);
-        applyResult = { success: false, message: "Error en auto-apply: " + String(err), ats };
-      }
-    }
-
-    // ── Método 2: Email directo (si el trabajo tiene email) ────────
-    if (!applyResult.success && (job as Job).apply_email) {
-      try {
-        const { sendApplicationEmail } = await import("@/lib/resend");
-        const messageId = await sendApplicationEmail({
-          to: (job as Job).apply_email!,
-          candidateName: appProfile.name,
-          candidateEmail: appProfile.email,
-          candidatePhone: appProfile.phone,
-          jobTitle: job.title,
-          company: job.company,
-          coverLetter,
-          cvBase64,
-          cvFileName: `CV_${appProfile.name.replace(/\s+/g, "_")}.pdf`,
-        });
-        applyResult = { success: true, message: "Email enviado al reclutador", ats: "email" };
-      } catch (err) {
-        console.error("Email apply error:", err);
       }
     }
 
