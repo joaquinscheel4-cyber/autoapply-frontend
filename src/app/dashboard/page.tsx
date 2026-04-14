@@ -34,7 +34,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("onboarding_completed, parsed_cv, preferences")
+    .select("onboarding_completed, parsed_cv, preferences, gmail_tokens")
     .eq("user_id", user.id)
     .single();
 
@@ -54,6 +54,7 @@ export default async function DashboardPage() {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const weekApps = apps.filter((a) => a.created_at > weekAgo);
   const sniperEnabled = !!profile?.preferences?.sniper_enabled;
+  const gmailConnected = !!profile?.gmail_tokens;
 
   const statusColors: Record<string, string> = {
     sent: "bg-green-100 text-green-700",
@@ -76,6 +77,33 @@ export default async function DashboardPage() {
           className="bg-primary-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary-700">
           Ver trabajos →
         </Link>
+      </div>
+
+      {/* Gmail Connect */}
+      <div className={`rounded-2xl border-2 p-4 flex items-center justify-between gap-4 ${gmailConnected ? "border-green-200 bg-green-50" : "border-gray-100 bg-white"}`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${gmailConnected ? "bg-green-500" : "bg-gray-100"}`}>
+            <svg className={`w-5 h-5 ${gmailConnected ? "text-white" : "text-gray-400"}`} viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+            </svg>
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900 text-sm">
+              {gmailConnected ? "Gmail conectado ✓" : "Conectar Gmail"}
+            </p>
+            <p className="text-xs text-gray-500">
+              {gmailConnected
+                ? "Los emails se envían desde tu Gmail directamente"
+                : "Envía postulaciones desde tu propio Gmail"}
+            </p>
+          </div>
+        </div>
+        {!gmailConnected && (
+          <a href="/api/auth/gmail"
+            className="shrink-0 bg-primary-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary-700">
+            Conectar →
+          </a>
+        )}
       </div>
 
       {/* Modo Sniper */}

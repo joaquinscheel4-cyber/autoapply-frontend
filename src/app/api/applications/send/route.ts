@@ -65,9 +65,50 @@ export async function POST(request: NextRequest) {
       ats,
     };
 
-    // ── Método único: Email via Railway backend ────────────────────
-    // Railway handles: job.apply_email → Hunter.io lookup → fallback pattern
-    if (RAILWAY_BACKEND) {
+    // ── Método 1: Gmail OAuth (si el usuario conectó su Gmail) ────
+    if (profile.gmail_tokens) {
+      try {
+        const { sendViaGmail } = await import("@/lib/gmail-oauth");
+        const { getOAuthClient } = await import("@/lib/gmail-oauth");
+
+        // Refresh token if needed
+        const oauth2Client = getOAuthClient();
+        oauth2Client.setCredentials(profile.gmail_tokens);
+        const { credentials } = await oauth2Client.refreshAccessToken();
+
+        // Save refreshed tokens
+        await supabase.from("profiles").update({ gmail_tokens: credentials }).eq("user_id", user.id);
+
+        const recruiterEmail = (job as Job).apply_email || null;
+        if (!recruiterEmail) throw new Error("No hay email del reclutador");
+
+        const html = `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;">
+  <p style="font-size:14px;color:#374151;white-space:pre-line;line-height:1.6;">${coverLetter}</p>
+  <hr style="border:none;border-top:1px solid #f3f4f6;margin:16px 0;">
+  <p style="font-size:12px;color:#9ca3af;">${appProfile.name} · ${appProfile.email} · ${appProfile.phone || ""}</p>
+</div>`;
+
+        await sendViaGmail(credentials, {
+          to: recruiterEmail,
+          cc: appProfile.email,
+          replyTo: appProfile.email,
+          subject: `Postulación: ${job.title} — ${appProfile.name}`,
+          html,
+          candidateName: appProfile.name,
+          cvBase64,
+          cvFileName,
+        });
+
+        applyResult = { success: true, message: "Email enviado desde tu Gmail", ats: "gmail" };
+      } catch (err) {
+        console.error("Gmail send error:", err);
+        // Fall through to Railway
+      }
+    }
+
+    // ── Método 2: Email via Railway backend ────────────────────────
+    if (!applyResult.success && RAILWAY_BACKEND) {
       try {
         const res = await fetch(`${RAILWAY_BACKEND}/auto-apply`, {
           method: "POST",
@@ -106,6 +147,7 @@ export async function POST(request: NextRequest) {
         console.error("Railway auto-apply error:", err);
       }
     }
+
 
     // ── Determinar status final ────────────────────────────────────
     const status = applyResult.success ? "sent" : "pending";
