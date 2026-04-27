@@ -55,6 +55,11 @@ export interface Job {
   salary_max: number | null;
   posted_at: string | null;
   fetched_at: string;
+  // Recruiter contact enriched via Apollo
+  recruiter_email: string | null;
+  recruiter_name: string | null;
+  recruiter_title: string | null;
+  email_source: string | null;
 }
 
 export interface Application {
@@ -63,11 +68,15 @@ export interface Application {
   job_id: string;
   job?: Job;
   cover_letter_text: string;
-  status: "pending" | "sent" | "failed";
+  status: "pending" | "sent" | "failed" | "sin_contacto";
   sent_at: string | null;
   email_message_id: string | null;
   triggered_by: "cron" | "manual" | "sniper";
   created_at: string;
+  recruiter_email: string | null;
+  recruiter_name: string | null;
+  recruiter_title: string | null;
+  email_source: string | null;
 }
 
 export interface MatchResult {

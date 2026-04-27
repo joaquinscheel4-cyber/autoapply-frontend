@@ -22,47 +22,63 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
     router.refresh();
   }
 
+  const initial = userEmail?.[0]?.toUpperCase() || "U";
+
   return (
-    <aside className="w-60 bg-white border-r border-gray-100 flex flex-col">
+    <aside className="w-60 bg-white border-r border-slate-100 flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-            <Zap size={16} className="text-white" />
+      <div className="p-5 border-b border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-violet-600 rounded-lg flex items-center justify-center shadow-sm">
+            <Zap size={15} className="text-white" />
           </div>
-          <span className="font-bold text-gray-900 text-sm">AutoApply Chile</span>
+          <div>
+            <p className="font-bold text-slate-900 text-sm leading-none">AutoApply</p>
+            <p className="text-[10px] text-slate-400 mt-0.5 leading-none">Chile</p>
+          </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-3 space-y-0.5">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname.startsWith(href);
+          const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${
                 isActive
-                  ? "bg-primary-50 text-primary-700 font-medium"
-                  : "text-gray-600 hover:bg-gray-50"
+                  ? "bg-primary-50 text-primary-700"
+                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
               }`}
             >
-              <Icon size={16} />
+              <Icon
+                size={16}
+                className={`transition-colors ${isActive ? "text-primary-600" : "text-slate-400 group-hover:text-slate-600"}`}
+              />
               {label}
+              {isActive && (
+                <span className="ml-auto w-1.5 h-1.5 bg-primary-500 rounded-full" />
+              )}
             </Link>
           );
         })}
       </nav>
 
-      {/* User */}
-      <div className="p-4 border-t border-gray-100">
-        <p className="text-xs text-gray-400 mb-3 truncate">{userEmail}</p>
+      {/* User section */}
+      <div className="p-3 border-t border-slate-100">
+        <div className="flex items-center gap-2.5 px-2 py-2 mb-1">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-400 to-violet-400 flex items-center justify-center shrink-0">
+            <span className="text-white text-xs font-bold">{initial}</span>
+          </div>
+          <p className="text-xs text-slate-500 truncate flex-1">{userEmail}</p>
+        </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-500 transition-colors w-full"
+          className="flex items-center gap-2.5 text-sm text-slate-400 hover:text-red-500 transition-colors w-full px-2 py-2 rounded-lg hover:bg-red-50"
         >
-          <LogOut size={15} />
+          <LogOut size={14} />
           Cerrar sesión
         </button>
       </div>

@@ -124,6 +124,10 @@ export async function POST(request: NextRequest) {
               apply_link: job.apply_link || "",
               apply_email: (job as Job).apply_email || null,
               description: job.description,
+              recruiter_email: (job as Job).recruiter_email || null,
+              recruiter_name: (job as Job).recruiter_name || null,
+              recruiter_title: (job as Job).recruiter_title || null,
+              email_source: (job as Job).email_source || null,
             },
             parsed_cv: profile.parsed_cv,
             cv_base64: cvBase64,
@@ -152,6 +156,20 @@ export async function POST(request: NextRequest) {
     // ── Determinar status final ────────────────────────────────────
     const status = applyResult.success ? "sent" : "pending";
 
+    // Determine recruiter info: from backend response (live search) or from job record (pre-enriched)
+    const recruiterEmail = (applyResult as { recruiter_email?: string }).recruiter_email
+      || (job as Job).recruiter_email
+      || null;
+    const recruiterName = (applyResult as { recruiter_name?: string }).recruiter_name
+      || (job as Job).recruiter_name
+      || null;
+    const recruiterTitle = (applyResult as { recruiter_title?: string }).recruiter_title
+      || (job as Job).recruiter_title
+      || null;
+    const emailSource = (applyResult as { email_source?: string }).email_source
+      || (job as Job).email_source
+      || null;
+
     // Save application
     const { data: application } = await supabase
       .from("applications")
@@ -162,6 +180,10 @@ export async function POST(request: NextRequest) {
         status,
         sent_at: applyResult.success ? new Date().toISOString() : null,
         triggered_by: "manual",
+        recruiter_email: recruiterEmail,
+        recruiter_name: recruiterName,
+        recruiter_title: recruiterTitle,
+        email_source: emailSource,
       })
       .select().single();
 

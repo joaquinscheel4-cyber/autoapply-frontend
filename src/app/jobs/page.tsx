@@ -39,11 +39,11 @@ export default async function JobsPage() {
   const ranked = sortJobsByRelevance(matched);
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Trabajos disponibles</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          {ranked.length} trabajos ordenados por empresa + compatibilidad con tu perfil
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Trabajos disponibles</h1>
+        <p className="text-slate-400 text-sm mt-0.5">
+          {ranked.length} trabajos ordenados por compatibilidad con tu perfil
         </p>
       </div>
       <JobsList initialJobs={ranked} />
